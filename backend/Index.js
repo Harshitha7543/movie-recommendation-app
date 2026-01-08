@@ -93,7 +93,7 @@ fastify.post('/recommend', async (request, reply) => {
 // ---------------- SERVER START ----------------
 
 // Use Render / system port or fallback to 3000
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // IMPORTANT: host 0.0.0.0 for deployment
 fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {

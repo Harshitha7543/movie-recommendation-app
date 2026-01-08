@@ -1,17 +1,23 @@
+// Load environment variables
 require('dotenv').config();
 
 const Fastify = require('fastify');
 const sqlite3 = require('sqlite3').verbose();
 
+// Create Fastify server
 const fastify = Fastify({ logger: true });
 
-// Enable CORS
+// Enable CORS (allow frontend requests)
 fastify.register(require('@fastify/cors'), {
   origin: true
 });
 
-// SQLite Database
+// ---------------- DATABASE SETUP ----------------
+
+// Create / open SQLite database
 const db = new sqlite3.Database('./movies.db');
+
+// Create table if not exists
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS recommendations (
@@ -23,21 +29,23 @@ db.serialize(() => {
   `);
 });
 
+// ---------------- ROUTES ----------------
+
 // Health check route
 fastify.get('/', async () => {
   return { message: "Backend is running" };
 });
 
-// Movie recommendation API (FREE logic)
+// Movie recommendation API
 fastify.post('/recommend', async (request, reply) => {
   const { user_input } = request.body;
 
   if (!user_input) {
-    return reply.send({ error: "Please provide input" });
+    return reply.status(400).send({ error: "Please provide input" });
   }
 
-  let movies = [];
   const input = user_input.toLowerCase();
+  let movies = [];
 
   if (input.includes("action")) {
     movies = [
@@ -73,7 +81,7 @@ fastify.post('/recommend', async (request, reply) => {
     ];
   }
 
-  // Save to database
+  // Save user input & recommendations
   db.run(
     "INSERT INTO recommendations (user_input, recommended_movies) VALUES (?, ?)",
     [user_input, movies.join(", ")]
@@ -82,11 +90,17 @@ fastify.post('/recommend', async (request, reply) => {
   reply.send({ recommended_movies: movies });
 });
 
-// Start server
-fastify.listen({ port: 5000 }, (err) => {
+// ---------------- SERVER START ----------------
+
+// Use Render / system port or fallback to 3000
+const PORT = process.env.PORT || 3000;
+
+// IMPORTANT: host 0.0.0.0 for deployment
+fastify.listen({ port: PORT, host: '0.0.0.0' }, (err) => {
   if (err) {
     console.error(err);
     process.exit(1);
   }
-  console.log("✅ Backend running at http://localhost:5000");
+  console.log(`✅ Backend running on port ${PORT}`);
 });
+
